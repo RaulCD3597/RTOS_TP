@@ -16,19 +16,21 @@
 #include "Buttons.h"
 #include "SD_Module.h"
 #include "bluetooth.h"
+#include "stateMachine.h"
+#include "uartPC.h"
 
-
-int main(void) {
+int main(void)
+{
 	boardInit();
 
 	deviceSM_Init();
 	Buttons_init();
 	SD_Init();
 	bluetooth_Init();
+	uartPC_Init();
+	deviceSM_Init();
 
 	vTaskStartScheduler();
 
 	return 0;
 }
-
-

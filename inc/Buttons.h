@@ -5,8 +5,8 @@
  *      Author: raul
  */
 
-#ifndef PROGRAMS_RTOS_TP_INC_BUTTONS_H_
-#define PROGRAMS_RTOS_TP_INC_BUTTONS_H_
+#ifndef BUTTONS_H_
+#define BUTTONS_H_
 
 #include "sapi.h"
 #include <stdlib.h>
@@ -16,13 +16,6 @@
 #include "queue.h"
 #include "semphr.h"
 
-typedef struct{
-	gpioMap_t button;
-	bool_t ISRstate;
-}debounce_t;
-
-
-
 void Buttons_init(void);
 
-#endif /* PROGRAMS_RTOS_TP_INC_BUTTONS_H_ */
+#endif /* BUTTONS_H_ */

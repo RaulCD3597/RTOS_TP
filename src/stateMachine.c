@@ -4,19 +4,52 @@
  *  Created on: May 30, 2020
  *      Author: raulcamacho
  */
+#include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
 
 #include "sapi.h"
 #include "events.h"
 #include "stateMachine.h"
+#include "uartPC.h"
+#include "bluetooth.h"
 
 static deviceState_t mainState;
+QueueHandle_t FSMQueue;
+
+static void FSMTask(void *pvParameters);
+static void deviceSM_Update(event_t newEvent);
+static void led_Update();
 
 void deviceSM_Init(void)
 {
     mainState = IDLE;
+    FSMQueue = xQueueCreate(2, sizeof(event_t));
+    if (FSMQueue != NULL)
+    {
+        xTaskCreate(
+            FSMTask,
+            (const char *)"FSMTask",
+            (configMINIMAL_STACK_SIZE * 3),
+            NULL,
+            FSMtsk_PRIORITY,
+            NULL);
+    }
 }
 
-void deviceSM_Update(event_t newEvent)
+void FSMTask(void *pvParameters)
+{
+    event_t newEvent;
+    for (;;)
+    {
+        xQueueReceive(FSMQueue, &newEvent, portMAX_DELAY);
+        deviceSM_Update(newEvent);
+    }
+}
+
+static void deviceSM_Update(event_t newEvent)
 {
     uint8_t msg[100] = "";
     uint8_t receiveBuffer[50] = "";
@@ -24,114 +57,159 @@ void deviceSM_Update(event_t newEvent)
     switch (mainState)
     {
     case IDLE:
-        gpioWrite(LED1, OFF);
-        gpioWrite(LED2, OFF);
-        gpioWrite(LEDB, OFF);
         switch (newEvent.event)
         {
         case BLE_EVENT:
-            // miApp_UART_Send(newEvent.msgId, newEvent.message);
-            // mainState += newEvent.msgId;
+            uartPC_SendEvent(&newEvent);
+            mainState += newEvent.msgId;
+            break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
             break;
         default:
             break;
         }
+        led_Update();
         break;
     case EMERGENCY:
-        gpioWrite(LED1, OFF);
-        gpioWrite(LED2, ON);
-        gpioWrite(LEDB, OFF);
         switch (newEvent.event)
         {
         case BLE_EVENT:
             if (newEvent.msgId == LOWBATT_BT)
             {
-                // miApp_UART_Send(newEvent.msgId, newEvent.message);
-                // mainState += newEvent.msgId;
+                uartPC_SendEvent(&newEvent);
+                mainState = EM_LOW_BATT;
             }
             break;
         case TEC1_EVENT:
             mainState = IDLE;
             break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
+            break;
         default:
             break;
         }
+        led_Update();
         break;
     case NORMAL:
-        gpioWrite(LED1, ON);
-        gpioWrite(LED2, OFF);
-        gpioWrite(LEDB, OFF);
         switch (newEvent.event)
         {
         case BLE_EVENT:
             if (newEvent.msgId != NORMAL_BT)
             {
-                // miApp_UART_Send(newEvent.msgId, newEvent.message);
-                // mainState += newEvent.msgId;
+                uartPC_SendEvent(&newEvent);
+                mainState = (newEvent.msgId == EMERGENCY_BT) ? EMERGENCY : NOR_LOW_BATT;
             }
             break;
-        case  TEC1_EVENT:
+        case TEC1_EVENT:
             mainState = IDLE;
+            break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
             break;
         default:
             break;
         }
+        led_Update();
         break;
     case LOW_BATT:
-        gpioWrite(LED1, OFF);
-        gpioWrite(LED2, OFF);
-        gpioWrite(LEDB, ON);
         switch (newEvent.event)
         {
         case BLE_EVENT:
             if (newEvent.msgId != LOWBATT_BT)
             {
-                // miApp_UART_Send(newEvent.msgId, newEvent.message);
-                // mainState += newEvent.msgId;
+                uartPC_SendEvent(&newEvent);
+                mainState += newEvent.msgId;
             }
             break;
-        case  TEC1_EVENT:
+        case TEC1_EVENT:
             mainState = IDLE;
+            break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
             break;
         default:
             break;
         }
+        led_Update();
+        break;
+    case EM_LOW_BATT:
+        switch (newEvent.event)
+        {
+        case TEC1_EVENT:
+            mainState = IDLE;
+            break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
+            break;
+        default:
+            break;
+        }
+        led_Update();
+        break;
+    case NOR_LOW_BATT:
+        switch (newEvent.event)
+        {
+        case BLE_EVENT:
+            if (newEvent.msgId == EMERGENCY_BT)
+            {
+                uartPC_SendEvent(&newEvent);
+                mainState = EM_LOW_BATT;
+            }
+            break;
+        case TEC1_EVENT:
+            mainState = IDLE;
+            break;
+        case UARTPC_EVENT:
+            bluetooth_SendEvent(&newEvent);
+            break;
+        default:
+            break;
+        }
+        led_Update();
+        break;
+    default:
+        deviceSM_Init();
+        break;
+    }
+}
+
+static void led_Update()
+{
+    switch (mainState)
+    {
+    case IDLE:
+        gpioWrite(LED1, OFF);
+        gpioWrite(LED2, OFF);
+        gpioWrite(LEDB, OFF);
+        break;
+    case EMERGENCY:
+        gpioWrite(LED1, OFF);
+        gpioWrite(LED2, ON);
+        gpioWrite(LEDB, OFF);
+        break;
+    case NORMAL:
+        gpioWrite(LED1, ON);
+        gpioWrite(LED2, OFF);
+        gpioWrite(LEDB, OFF);
+        break;
+    case LOW_BATT:
+        gpioWrite(LED1, OFF);
+        gpioWrite(LED2, OFF);
+        gpioWrite(LEDB, ON);
         break;
     case EM_LOW_BATT:
         gpioWrite(LED1, OFF);
         gpioWrite(LED2, ON);
         gpioWrite(LEDB, ON);
-        switch (newEvent.event)
-        {
-        case  TEC1_EVENT:
-            mainState = IDLE;
-            break;
-        default:
-            break;
-        }
         break;
     case NOR_LOW_BATT:
         gpioWrite(LED1, ON);
         gpioWrite(LED2, OFF);
         gpioWrite(LEDB, ON);
-        switch (newEvent.event)
-        {
-        case BLE_EVENT:
-            if (newEvent.msgId != EMERGENCY_BT)
-            {
-                // miApp_UART_Send(newEvent.msgId, newEvent.message);
-                // mainState += newEvent.msgId;
-            }
-            break;
-        case  TEC1_EVENT:
-            mainState = IDLE;
-            break;
-        default:
-            break;
-        }
         break;
     default:
-        deviceSM_Init();
         break;
     }
 }

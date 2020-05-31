@@ -5,14 +5,11 @@
  *      Author: raulcamacho
  */
 
-#ifndef PROGRAMS_PDM_TPFINAL_INC_MYAPP_H_
-#define PROGRAMS_PDM_TPFINAL_INC_MYAPP_H_
-/**
- * @typedef deviceState_t
- * @brief tipo de dato que permite saber el estado en que se
- * encuentra la FSM de la aplicacion principal
- */
-typedef enum{
+#ifndef STATE_MACHINE_H_
+#define STATE_MACHINE_H_
+
+typedef enum
+{
 	IDLE,
 	EMERGENCY,
 	NORMAL,
@@ -20,14 +17,7 @@ typedef enum{
 	EM_LOW_BATT,
 	NOR_LOW_BATT
 } deviceState_t;
-/**
- * @brief Funcion que inicializa la FSM de la aplicacion principal
- */
-void deviceSM_Init(void);
-/**
- * @brief Funcion para el control de la FSM de la aplicacion principal
- * debe ser llamada continuamente dentro de la funcion main
- */
-void deviceSM_Update(event_t newEvent);
 
-#endif /* PROGRAMS_PDM_TPFINAL_INC_MYAPP_H_ */
+void deviceSM_Init(void);
+
+#endif /* STATE_MACHINE_H_ */

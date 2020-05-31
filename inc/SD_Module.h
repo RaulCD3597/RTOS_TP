@@ -5,11 +5,9 @@
  *      Author: raul
  */
 
-#ifndef PROGRAMS_RTOS_TP_INC_SD_MODULE_H_
-#define PROGRAMS_RTOS_TP_INC_SD_MODULE_H_
-
+#ifndef SD_MODULE_H_
+#define SD_MODULE_H_
 
 void SD_Init(void);
 
-
-#endif /* PROGRAMS_RTOS_TP_INC_SD_MODULE_H_ */
+#endif /* SD_MODULE_H_ */

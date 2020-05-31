@@ -5,10 +5,12 @@
  *      Author: raul
  */
 
-#ifndef PROGRAMS_RTOS_TP_INC_BLUETOOTH_H_
-#define PROGRAMS_RTOS_TP_INC_BLUETOOTH_H_
+#ifndef BLUETOOTH_H_
+#define BLUETOOTH_H_
+
+#include "events.h"
 
 void bluetooth_Init(void);
+void bluetooth_SendEvent(event_t *pNewEvent);
 
-
-#endif /* PROGRAMS_RTOS_TP_INC_BLUETOOTH_H_ */
+#endif /* BLUETOOTH_H_ */

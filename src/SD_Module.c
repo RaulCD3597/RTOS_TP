@@ -21,38 +21,40 @@
 static FATFS fs;
 static FIL fp;
 
-void FATTask(void* taskParmPtr);
+void FATTask(void *taskParmPtr);
 
-void SD_Init(void) {
+void SD_Init(void)
+{
 	// SPI configuration
 	spiConfig(SPI0);
 
 	// Initialize SD card driver
 	FSSDC_InitSPI();
 	// Give a work area to the default drive
-	if (f_mount(&fs, "SDC:", 0) != FR_OK) {
+	if (f_mount(&fs, "SDC:", 0) != FR_OK)
+	{
 		// If this fails, it means that the function could
 		// not register a file system object.
 		// Check whether the SD card is correctly connected
 	}
 
 	xTaskCreate(
-			FATTask,
-			(const char *)"FATTask",
-			configMINIMAL_STACK_SIZE,
-			NULL,
-			FATtsk_PRIORITY,
-			NULL
-	);
+		FATTask,
+		(const char *)"FATTask",
+		configMINIMAL_STACK_SIZE,
+		NULL,
+		FATtsk_PRIORITY,
+		NULL);
 }
 
-void FATTask(void* taskParmPtr) {
-
+void FATTask(void *taskParmPtr)
+{
 	portTickType xPeriodicity = 10 / portTICK_RATE_MS;
 	portTickType xLastWakeTime = xTaskGetTickCount();
 
-	for(;;){
+	for (;;)
+	{
 		disk_timerproc();
-		vTaskDelayUntil( &xLastWakeTime, xPeriodicity );
+		vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
 	}
 }
