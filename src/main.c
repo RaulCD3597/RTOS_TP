@@ -21,6 +21,7 @@
 int main(void) {
 	boardInit();
 
+	deviceSM_Init();
 	Buttons_init();
 	SD_Init();
 	bluetooth_Init();

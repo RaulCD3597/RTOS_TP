@@ -22,7 +22,7 @@
 #define TEC1_ISR_HANDLER    GPIO0_IRQHandler
 #define TEC1_INTERRUPT      PIN_INT0_IRQn
 
-#define BQUEUE_LENGTH 1
+#define BUTTON_QUEUE_LENGTH 1
 
 static debounce_t ISRButton;
 QueueHandle_t buttonsQueue;
@@ -32,7 +32,7 @@ static void configGPIO_Interrupts(void);
 
 void Buttons_init(void) {
 
-	buttonsQueue = xQueueCreate(BQUEUE_LENGTH, sizeof(debounce_t));
+	buttonsQueue = xQueueCreate(BUTTON_QUEUE_LENGTH, sizeof(debounce_t));
 	if (buttonsQueue != NULL) {
 		configGPIO_Interrupts();
 	}
