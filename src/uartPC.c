@@ -60,11 +60,11 @@ void uartPC_SendEvent(event_t *pNewEvent)
     msg[pNewEvent->msgLength] = 0;
     if (pNewEvent->msgLength)
     {
-        sprintf(messageToSend, "%s: %s\r\n", idToMessage[pNewEvent->msgId], msg);
+        sprintf(messageToSend, "\r\n%s: %s", idToMessage[pNewEvent->msgId], msg);
     }
     else
     {
-        sprintf(messageToSend, "%s\r\n", idToMessage[pNewEvent->msgId]);
+        sprintf(messageToSend, "\r\n%s", idToMessage[pNewEvent->msgId]);
     }
     uartWriteString(UARTPC, messageToSend);
 }

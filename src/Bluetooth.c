@@ -154,7 +154,7 @@ void bluetooth_SendEvent(event_t *pNewEvent)
 	msg[pNewEvent->msgLength] = 0;
 	if (pNewEvent->msgLength)
 	{
-		sprintf(messageToSend, "{\"msg\": \"%s}\"\r\n", msg);
+		sprintf(messageToSend, "{\"msg\": \"%s\"}\r\n", msg);
 	}
 	else
 	{
