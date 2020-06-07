@@ -5,26 +5,37 @@
  *      Author: raul
  */
 
+#include "events.h"
 #include "SD_Module.h"
-
-#include "FreeRTOS.h"
-#include "FreeRTOSConfig.h"
-#include "task.h"
-
 #include "sapi.h"
-
 #include "ff.h"
 #include "fssdc.h"
+#include <string.h>
 
 #define FILENAME "SDC:/syslog.txt"
 
 static FATFS fs;
 static FIL fp;
+static rtc_t rtc = {
+	2020,
+	6,
+	6,
+	6,
+	9,
+	0,
+	0};
+static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
 
-void FATTask(void *taskParmPtr);
+static void FATTask(void *taskParmPtr);
+static void SD_BLEEvent(event_t *newEvent);
+static void SD_TEC1Event(event_t *newEvent);
+static void SD_UARTEvent(event_t *newEvent);
 
 void SD_Init(void)
 {
+	rtcInit();		// Inicializar RTC
+	rtcWrite(&rtc); // Establecer fecha y hora
+
 	// SPI configuration
 	spiConfig(SPI0);
 
@@ -56,5 +67,129 @@ void FATTask(void *taskParmPtr)
 	{
 		disk_timerproc();
 		vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
+	}
+}
+
+void SD_WriteSyslog(event_t *newEvent)
+{
+	switch (newEvent->event)
+	{
+	case BLE_EVENT:
+		SD_BLEEvent(newEvent);
+		break;
+	case TEC1_EVENT:
+		SD_TEC1Event(newEvent);
+		break;
+	case UARTPC_EVENT:
+		SD_UARTEvent(newEvent);
+		break;
+	default:
+		break;
+	}
+}
+
+static void SD_BLEEvent(event_t *pNewEvent)
+{
+	rtcRead(&rtc);
+
+	if (f_open(&fp, FILENAME, FA_WRITE | FA_OPEN_APPEND) == FR_OK)
+	{
+		int nbytes, length;
+		uint8_t buff[200];
+		uint8_t msg[(pNewEvent->msgLength + 1)];
+		memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
+
+		if (pNewEvent->msgLength > 0)
+		{
+			length = sprintf(buff, "%04d-%02d-%02d %02d:%02d:%02d Paciente envia notificacion %s: %s\r\n",
+							 rtc.year,
+							 rtc.month,
+							 rtc.mday,
+							 rtc.hour,
+							 rtc.min,
+							 rtc.sec,
+							 idToMessage[pNewEvent->msgId],
+							 msg);
+		}
+		else
+		{
+			length = sprintf(buff, "%04d-%02d-%02d %02d:%02d:%02d Paciente envia notificacion %s\r\n",
+							 rtc.year,
+							 rtc.month,
+							 rtc.mday,
+							 rtc.hour,
+							 rtc.min,
+							 rtc.sec,
+							 idToMessage[pNewEvent->msgId]);
+		}
+
+		f_write(&fp, buff, length, &nbytes);
+
+		f_close(&fp);
+	}
+}
+
+static void SD_TEC1Event(event_t *pNewEvent)
+{
+	rtcRead(&rtc);
+
+	if (f_open(&fp, FILENAME, FA_WRITE | FA_OPEN_APPEND) == FR_OK)
+	{
+		int nbytes, length;
+		uint8_t buff[100];
+
+		length = sprintf(buff, "%04d-%02d-%02d %02d:%02d:%02d Paciente atendido\r\n",
+						 rtc.year,
+						 rtc.month,
+						 rtc.mday,
+						 rtc.hour,
+						 rtc.min,
+						 rtc.sec);
+
+		f_write(&fp, buff, length, &nbytes);
+
+		f_close(&fp);
+	}
+}
+
+static void SD_UARTEvent(event_t *pNewEvent)
+{
+	rtcRead(&rtc);
+	uint8_t msg[(pNewEvent->msgLength + 1)];
+	memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
+	
+	if (f_open(&fp, FILENAME, FA_WRITE | FA_OPEN_APPEND) == FR_OK)
+	{
+		int nbytes, length;
+		uint8_t buff[200];
+		uint8_t msg[(pNewEvent->msgLength + 1)];
+		memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
+
+		if (pNewEvent->msgLength > 0)
+		{
+			length = sprintf(buff, "%04d-%02d-%02d %02d:%02d:%02d Mensaje central enfermera: %s\r\n",
+							 rtc.year,
+							 rtc.month,
+							 rtc.mday,
+							 rtc.hour,
+							 rtc.min,
+							 rtc.sec,
+							 msg);
+		}
+		else
+		{
+			length = sprintf(buff, "%04d-%02d-%02d %02d:%02d:%02d Central de Enfermera pide %s microfono\r\n",
+							 rtc.year,
+							 rtc.month,
+							 rtc.mday,
+							 rtc.hour,
+							 rtc.min,
+							 rtc.sec,
+							 pNewEvent->msgId ? "cerrar" : "abrir");
+		}
+
+		f_write(&fp, buff, length, &nbytes);
+
+		f_close(&fp);
 	}
 }

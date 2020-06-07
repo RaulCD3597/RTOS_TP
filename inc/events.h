@@ -8,8 +8,18 @@
 #ifndef EVENTS_H_
 #define EVENTS_H_
 
+#include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
 #include <stdlib.h>
 #include <stdint.h>
+
+
+#define MAX_WORDS 4
+#define MAX_CHAR 20
 
 extern QueueHandle_t FSMQueue;
 

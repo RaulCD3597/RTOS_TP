@@ -15,6 +15,7 @@
 #include "stateMachine.h"
 #include "uartPC.h"
 #include "bluetooth.h"
+#include "SD_Module.h"
 
 static deviceState_t mainState;
 QueueHandle_t FSMQueue;
@@ -32,7 +33,7 @@ void deviceSM_Init(void)
         xTaskCreate(
             FSMTask,
             (const char *)"FSMTask",
-            (configMINIMAL_STACK_SIZE * 3),
+            (configMINIMAL_STACK_SIZE * 4),
             NULL,
             FSMtsk_PRIORITY,
             NULL);
@@ -61,10 +62,12 @@ static void deviceSM_Update(event_t newEvent)
         {
         case BLE_EVENT:
             uartPC_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             mainState += newEvent.msgId;
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;
@@ -78,14 +81,17 @@ static void deviceSM_Update(event_t newEvent)
             if (newEvent.msgId == LOWBATT_BT)
             {
                 uartPC_SendEvent(&newEvent);
+                SD_WriteSyslog(&newEvent);
                 mainState = EM_LOW_BATT;
             }
             break;
         case TEC1_EVENT:
             mainState = IDLE;
+            SD_WriteSyslog(&newEvent);
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;
@@ -99,14 +105,17 @@ static void deviceSM_Update(event_t newEvent)
             if (newEvent.msgId != NORMAL_BT)
             {
                 uartPC_SendEvent(&newEvent);
+                SD_WriteSyslog(&newEvent);
                 mainState = (newEvent.msgId == EMERGENCY_BT) ? EMERGENCY : NOR_LOW_BATT;
             }
             break;
         case TEC1_EVENT:
             mainState = IDLE;
+            SD_WriteSyslog(&newEvent);
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;
@@ -120,14 +129,17 @@ static void deviceSM_Update(event_t newEvent)
             if (newEvent.msgId != LOWBATT_BT)
             {
                 uartPC_SendEvent(&newEvent);
+                SD_WriteSyslog(&newEvent);
                 mainState += newEvent.msgId;
             }
             break;
         case TEC1_EVENT:
             mainState = IDLE;
+            SD_WriteSyslog(&newEvent);
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;
@@ -139,9 +151,11 @@ static void deviceSM_Update(event_t newEvent)
         {
         case TEC1_EVENT:
             mainState = IDLE;
+            SD_WriteSyslog(&newEvent);
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;
@@ -155,14 +169,17 @@ static void deviceSM_Update(event_t newEvent)
             if (newEvent.msgId == EMERGENCY_BT)
             {
                 uartPC_SendEvent(&newEvent);
+                SD_WriteSyslog(&newEvent);
                 mainState = EM_LOW_BATT;
             }
             break;
         case TEC1_EVENT:
             mainState = IDLE;
+            SD_WriteSyslog(&newEvent);
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
+            SD_WriteSyslog(&newEvent);
             break;
         default:
             break;

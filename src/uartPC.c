@@ -18,8 +18,6 @@
 #define UARTPC UART_USB
 #define UARTPC_IRQn USART2_IRQn
 #define UARTPC_BAUDRATE 115200
-#define MAX_WORDS 4
-#define MAX_CHAR 20
 #define RX_BUFF_LENGTH (sizeof(RX_buffer) / sizeof(RX_buffer[0]))
 #define SPC_TO_CONTENT 2
 #define ID_STRING "id"
@@ -27,10 +25,10 @@
 #define SEPARATOR ":"
 #define MSG_SPC_TO_CONTENT 3
 
-static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
 uint8_t RX_buffer[100];
 uint8_t RXindex = 0;
 SemaphoreHandle_t RX_Semaphore;
+static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
 
 void RXCallback(void *pvParam);
 static void uartPCTask(void *pvParameters);
