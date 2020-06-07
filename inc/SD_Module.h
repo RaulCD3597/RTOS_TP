@@ -12,5 +12,6 @@
 
 void SD_Init(void);
 void SD_WriteSyslog(event_t *newEvent);
+void SD_ShowSyslog(void);
 
 #endif /* SD_MODULE_H_ */

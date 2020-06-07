@@ -11,6 +11,7 @@
 #include "ff.h"
 #include "fssdc.h"
 #include <string.h>
+#include "uartPC.h"
 
 #define FILENAME "SDC:/syslog.txt"
 
@@ -157,7 +158,7 @@ static void SD_UARTEvent(event_t *pNewEvent)
 	rtcRead(&rtc);
 	uint8_t msg[(pNewEvent->msgLength + 1)];
 	memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
-	
+
 	if (f_open(&fp, FILENAME, FA_WRITE | FA_OPEN_APPEND) == FR_OK)
 	{
 		int nbytes, length;
@@ -190,6 +191,21 @@ static void SD_UARTEvent(event_t *pNewEvent)
 
 		f_write(&fp, buff, length, &nbytes);
 
+		f_close(&fp);
+	}
+}
+
+void SD_ShowSyslog(void)
+{
+	uint8_t buff[READ_SIZE];
+	int nbytes;
+	if (f_open(&fp, FILENAME, FA_READ) == FR_OK)
+	{
+		if (f_lseek(&fp, f_size(&fp) - READ_SIZE) == FR_OK)
+		{
+			f_read(&fp, buff, READ_SIZE, &nbytes);
+			uartPC_SendSyslog(buff);
+		}
 		f_close(&fp);
 	}
 }

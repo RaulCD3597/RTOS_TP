@@ -12,5 +12,6 @@
 
 void uartPC_Init(void);
 void uartPC_SendEvent(event_t *pNewEvent);
+void uartPC_SendSyslog(uint8_t *msg);
 
 #endif /* UARTPC_H_ */

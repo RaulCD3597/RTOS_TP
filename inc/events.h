@@ -20,6 +20,7 @@
 
 #define MAX_WORDS 4
 #define MAX_CHAR 20
+#define READ_SIZE 500
 
 extern QueueHandle_t FSMQueue;
 

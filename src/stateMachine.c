@@ -69,6 +69,9 @@ static void deviceSM_Update(event_t newEvent)
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
             break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
+            break;
         default:
             break;
         }
@@ -92,6 +95,9 @@ static void deviceSM_Update(event_t newEvent)
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
+            break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
             break;
         default:
             break;
@@ -117,6 +123,9 @@ static void deviceSM_Update(event_t newEvent)
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
             break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
+            break;
         default:
             break;
         }
@@ -141,6 +150,9 @@ static void deviceSM_Update(event_t newEvent)
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
             break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
+            break;
         default:
             break;
         }
@@ -156,6 +168,9 @@ static void deviceSM_Update(event_t newEvent)
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
+            break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
             break;
         default:
             break;
@@ -180,6 +195,9 @@ static void deviceSM_Update(event_t newEvent)
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
             SD_WriteSyslog(&newEvent);
+            break;
+        case TEC2_EVENT:
+            SD_ShowSyslog();
             break;
         default:
             break;

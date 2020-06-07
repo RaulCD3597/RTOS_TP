@@ -126,3 +126,12 @@ static void uart_Parser(uint8_t *msg, event_t *pEvent)
         }
     }
 }
+
+void uartPC_SendSyslog(uint8_t *msg)
+{
+    uint8_t buff[READ_SIZE + 1];
+    memcpy(buff, msg, READ_SIZE);
+    buff[READ_SIZE] = 0;
+    uartWriteString(UARTPC, "\r\n");
+    uartWriteString(UARTPC, buff);
+}
