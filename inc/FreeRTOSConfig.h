@@ -74,6 +74,13 @@ extern int DbgConsole_Printf(const char *fmt_s, ...);
 #define configOVERRIDE_DEFAULT_TICK_CONFIGURATION 1
 #define configRECORD_STACK_HIGH_ADDRESS 1
 
+// Priorities for tasks 
+#define FATtsk_PRIORITY			tskIDLE_PRIORITY+1
+#define FSMtsk_PRIORITY			tskIDLE_PRIORITY+4
+#define BLEtsk_PRIORITY			tskIDLE_PRIORITY+3
+#define UARTPCtsk_PRIORITY		tskIDLE_PRIORITY+2
+#define Buttontsk_PRIORITY		tskIDLE_PRIORITY+2
+
 // Add old API compatibility
 #define configENABLE_BACKWARD_COMPATIBILITY 1
 
