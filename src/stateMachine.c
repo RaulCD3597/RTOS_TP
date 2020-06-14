@@ -61,9 +61,12 @@ static void deviceSM_Update(event_t newEvent)
         switch (newEvent.event)
         {
         case BLE_EVENT:
-            uartPC_SendEvent(&newEvent);
-            SD_WriteSyslog(&newEvent);
-            mainState += newEvent.msgId;
+            if (newEvent.msgId != NO_ID)
+            {
+                uartPC_SendEvent(&newEvent);
+                SD_WriteSyslog(&newEvent);
+                mainState += newEvent.msgId;
+            }
             break;
         case UARTPC_EVENT:
             bluetooth_SendEvent(&newEvent);
@@ -108,7 +111,7 @@ static void deviceSM_Update(event_t newEvent)
         switch (newEvent.event)
         {
         case BLE_EVENT:
-            if (newEvent.msgId != NORMAL_BT)
+            if (newEvent.msgId != NORMAL_BT && newEvent.msgId != NO_ID)
             {
                 uartPC_SendEvent(&newEvent);
                 SD_WriteSyslog(&newEvent);
@@ -135,7 +138,7 @@ static void deviceSM_Update(event_t newEvent)
         switch (newEvent.event)
         {
         case BLE_EVENT:
-            if (newEvent.msgId != LOWBATT_BT)
+            if (newEvent.msgId != LOWBATT_BT && newEvent.msgId != NO_ID)
             {
                 uartPC_SendEvent(&newEvent);
                 SD_WriteSyslog(&newEvent);

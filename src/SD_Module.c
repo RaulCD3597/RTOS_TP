@@ -162,9 +162,10 @@ static void SD_UARTEvent(event_t *pNewEvent)
 	if (f_open(&fp, FILENAME, FA_WRITE | FA_OPEN_APPEND) == FR_OK)
 	{
 		int nbytes, length;
-		uint8_t buff[200];
+		uint8_t buff[200] = "";
 		uint8_t msg[(pNewEvent->msgLength + 1)];
 		memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
+		msg[pNewEvent->msgLength] = 0;
 
 		if (pNewEvent->msgLength > 0)
 		{
