@@ -13,21 +13,13 @@
 #include "task.h"
 
 #include "sapi.h"
-#include "Buttons.h"
 #include "SD_Module.h"
-#include "bluetooth.h"
-#include "stateMachine.h"
-#include "uartPC.h"
 
 int main(void)
 {
 	boardInit();
 
 	SD_Init();
-	bluetooth_Init();
-	uartPC_Init();
-	Buttons_init();
-	deviceSM_Init();
 
 	vTaskStartScheduler();
 

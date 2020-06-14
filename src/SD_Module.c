@@ -11,6 +11,9 @@
 #include "ff.h"
 #include "fssdc.h"
 #include <string.h>
+#include "Buttons.h"
+#include "bluetooth.h"
+#include "stateMachine.h"
 #include "uartPC.h"
 
 #define FILENAME "SDC:/syslog.txt"
@@ -34,8 +37,6 @@ static void SD_UARTEvent(event_t *newEvent);
 
 void SD_Init(void)
 {
-	rtcInit();		// Inicializar RTC
-	rtcWrite(&rtc); // Establecer fecha y hora
 
 	// SPI configuration
 	spiConfig(SPI0);
@@ -61,6 +62,15 @@ void SD_Init(void)
 
 void FATTask(void *taskParmPtr)
 {
+	rtcInit();		// Inicializar RTC
+	rtcWrite(&rtc); // Establecer fecha y hora
+	vTaskDelay(pdMS_TO_TICKS(1000));
+	bluetooth_Init();
+	uartPC_Init();
+	Buttons_init();
+	deviceSM_Init();
+	uartWriteString(UARTPC, "Sistema inicializado!\r\n");
+
 	portTickType xPeriodicity = 10 / portTICK_RATE_MS;
 	portTickType xLastWakeTime = xTaskGetTickCount();
 

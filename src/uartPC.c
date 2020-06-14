@@ -15,7 +15,6 @@
 #include <string.h>
 #include "sapi.h"
 
-#define UARTPC UART_USB
 #define UARTPC_IRQn USART2_IRQn
 #define UARTPC_BAUDRATE 115200
 #define RX_BUFF_LENGTH (sizeof(RX_buffer) / sizeof(RX_buffer[0]))
