@@ -70,7 +70,9 @@ void uartPC_SendEvent(event_t *pNewEvent)
 void RXCallback(void *pvParam)
 {
     BaseType_t xHigherPriorityTaskWoken;
-
+    // 1. Espero recibir inicializador de mensaje
+	// 2. Si lo recibo inicializador empiezo a guardar en buffer
+	// 3. Si recibo finalizador libero semaforo y bajo bandera de recepcion de nuevo mensaje
     xHigherPriorityTaskWoken = pdFALSE;
     uint8_t c = uartRxRead(UARTPC);
     if (c == '{')
@@ -97,6 +99,9 @@ static void uartPCTask(void *pvParameters)
     event_t uartPC_newMsg;
     for (;;)
     {
+        // 1. Espero que semaforo me indique recepcion de un nuevo mensaje
+	    // 2. Interpreto mensaje recibido
+	    // 3. Envio novedad a la maquina de estados deviceFSM
         xSemaphoreTake(RX_Semaphore, portMAX_DELAY);
         uart_Parser(RX_buffer, &uartPC_newMsg);
         send_Event(&uartPC_newMsg);

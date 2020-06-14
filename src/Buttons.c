@@ -48,6 +48,7 @@ void Buttons_init(void)
 	uint8_t Error_state = 0;
 
 	configGPIO_Interrupts();
+	// Creo colas para sincronizar eventos de interrupcion de teclas
 	for (size_t i = CANT_TECLAS; i--; i >= 0)
 	{
 		Buttons_SM[i].Tecla = i;
@@ -56,7 +57,7 @@ void Buttons_init(void)
 			Error_state = 1;
 		}
 	}
-
+	// Creo tareas para botones
 	xTaskCreate(
 		ButtonTask,
 		(const char *)"Button1",
@@ -82,15 +83,13 @@ static void ButtonTask(void *pvParameters)
 	Config->Estado = UP;
 
 	Button_Control_t Control;
-
+	// Maquina de estados para debounce de teclas
 	for (;;)
 	{
 		if (xQueueReceive(Config->Cola, &Control, portMAX_DELAY))
 		{
-
 			switch (Config->Estado)
 			{
-
 			case UP:
 				if (Control.Flanco == FALLING)
 				{
@@ -100,7 +99,6 @@ static void ButtonTask(void *pvParameters)
 				NVIC_EnableIRQ(PIN_INT0_IRQn);
 				NVIC_EnableIRQ(PIN_INT2_IRQn);
 				break;
-
 			case DOWN:
 				if (Control.Flanco == RISING)
 				{
@@ -108,13 +106,13 @@ static void ButtonTask(void *pvParameters)
 					{
 						Config->Estado = UP;
 						buttonEvent.event = Control.GPIO_event;
+						// Si se confirma pulsacion de tecla notifico a maquina de estados deviceFSM
 						send_Event(&buttonEvent);
 					}
 				}
 				NVIC_EnableIRQ(PIN_INT1_IRQn);
 				NVIC_EnableIRQ(PIN_INT3_IRQn);
 				break;
-
 			default:
 				Config->Estado = UP;
 				break;

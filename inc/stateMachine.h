@@ -17,7 +17,9 @@ typedef enum
 	EM_LOW_BATT,
 	NOR_LOW_BATT
 } deviceState_t;
-
+/**
+ * Inicializa maquina de estados principal deviceFSM
+ */
 void deviceSM_Init(void);
 
 #endif /* STATE_MACHINE_H_ */

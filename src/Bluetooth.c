@@ -47,13 +47,14 @@ static void get_Msg(uint8_t *msg, uint8_t *receiveBuffer, uint8_t *length);
 
 void bluetooth_Init(void)
 {
+	// Configuro periferico para uso con bluetooth
 	uartConfig(BLUETOOTH, BT_BAUDRATE);
 	uartCallbackSet(BLUETOOTH, UART_RECEIVE, BLE_ReceiveCallback, NULL);
 	NVIC_SetPriority(BLUETOOTH_IRQn, configMAX_SYSCALL_INTERRUPT_PRIORITY + 5);
 	NVIC_EnableIRQ(BLUETOOTH_IRQn);
-
+	// Creo semaforo para sinconizar recepcion de mensaje por UART bluetooth
 	BLE_Semaphore = xSemaphoreCreateBinary();
-
+	// Creo tarea para manejo de modulo BLE
 	xTaskCreate(
 		BLETask,
 		(const char *)"BLETask",
@@ -69,6 +70,9 @@ void BLE_ReceiveCallback(void *pvParam)
 
 	xHigherPriorityTaskWoken = pdFALSE;
 	uint8_t c = uartRxRead(BLUETOOTH);
+	// 1. Espero recibir inicializador de mensaje
+	// 2. Si lo recibo inicializador empiezo a guardar en buffer
+	// 3. Si recibo finalizador libero semaforo y bajo bandera de recepcion de nuevo mensaje
 	if (c == '{')
 	{
 		BLE_RXindex = 0;
@@ -93,6 +97,9 @@ void BLETask(void *pvParameters)
 	event_t BLE_newMsg;
 	for (;;)
 	{
+		// 1. Espero que semaforo me indique recepcion de un nuevo mensaje
+		// 2. Interpreto mensaje recibido
+		// 3. Envio novedad a la maquina de estados deviceFSM
 		xSemaphoreTake(BLE_Semaphore, portMAX_DELAY);
 		bluetooth_Parser(BLE_RX_buffer, &BLE_newMsg);
 		send_Event(&BLE_newMsg);

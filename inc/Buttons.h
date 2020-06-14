@@ -15,7 +15,9 @@
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
-
+/**
+ * Funcion que inicializa modulo de botones
+ */
 void Buttons_init(void);
 
 #endif /* BUTTONS_H_ */
