@@ -9,140 +9,225 @@
 #include "chip.h"
 #include "events.h"
 
-// GPIO
-#define GPIO1_GPIO_PORT 0
-#define GPIO1_GPIO_PIN 8
-#define GPIO0_GPIO_PORT 0
-#define GPIO0_GPIO_PIN 4
+#define UP 1
+#define FALLING 2
+#define DOWN 3
+#define RISING 4
 
-// Interrupt
-#define TEC2_INDEX 1
-#define TEC2_ISR_HANDLER GPIO1_IRQHandler
-#define TEC2_INTERRUPT PIN_INT1_IRQn
-#define TEC1_INDEX 0
-#define TEC1_ISR_HANDLER GPIO0_IRQHandler
-#define TEC1_INTERRUPT PIN_INT0_IRQn
+#define CANT_TECLAS 2
+#define ANTIREBOTE_MS 20
 
-#define BUTTON_QUEUE_LENGTH 1
+enum Teclas_t
+{
+	Tecla1,
+	Tecla2
+}; //indices de teclas para el vector de estructuras
 
-static gpioMap_t ISRButton;
-QueueHandle_t buttonsQueue;
+typedef struct
+{ //estructura de control de datos capturados por la interrupciÃ³n
+	uint8_t GPIO_event;
+	uint8_t Flanco;
+} Button_Control_t;
+
+struct Buttons_SM_t
+{ //estructura de control de la mÃ¡quina de estados de cada botÃ³n
+	uint8_t Tecla;
+	uint8_t Estado;
+	xQueueHandle Cola;
+};
+
 QueueHandle_t FSMQueue;
+//Definicion de vector de estructuras de control
+struct Buttons_SM_t Buttons_SM[CANT_TECLAS];
 
 static void ButtonTask(void *pvParameters);
 static void configGPIO_Interrupts(void);
 
 void Buttons_init(void)
 {
+	uint8_t Error_state = 0;
 
-	buttonsQueue = xQueueCreate(BUTTON_QUEUE_LENGTH, sizeof(gpioMap_t));
-	if (buttonsQueue != NULL)
+	configGPIO_Interrupts();
+	for (size_t i = CANT_TECLAS; i--; i >= 0)
 	{
-		configGPIO_Interrupts();
+		Buttons_SM[i].Tecla = i;
+		if (NULL == (Buttons_SM[i].Cola = xQueueCreate(2, sizeof(Button_Control_t))))
+		{
+			Error_state = 1;
+		}
 	}
 
 	xTaskCreate(
 		ButtonTask,
-		(const char *)"ButtonTask",
+		(const char *)"Button1",
 		configMINIMAL_STACK_SIZE,
-		NULL,
+		&Buttons_SM[0],
+		Buttontsk_PRIORITY,
+		NULL);
+
+	xTaskCreate(
+		ButtonTask,
+		(const char *)"Button2",
+		configMINIMAL_STACK_SIZE,
+		&Buttons_SM[1],
 		Buttontsk_PRIORITY,
 		NULL);
 }
 
 static void ButtonTask(void *pvParameters)
 {
-	gpioMap_t buttonIRQ;
 	event_t buttonEvent;
+	struct Buttons_SM_t *Config;
+	Config = (struct Buttons_SM_t *)pvParameters;
+	Config->Estado = UP;
+
+	Button_Control_t Control;
+
 	for (;;)
 	{
-		xQueueReceive(buttonsQueue, &buttonIRQ, portMAX_DELAY);
+		if (xQueueReceive(Config->Cola, &Control, portMAX_DELAY))
+		{
 
-		if (buttonIRQ == TEC1)
-		{
-			vTaskDelay(pdMS_TO_TICKS(40));
-			if (!gpioRead(TEC1))
+			switch (Config->Estado)
 			{
-				buttonEvent.event = TEC1_EVENT;
-				xQueueSend(FSMQueue, &buttonEvent, pdMS_TO_TICKS(10));
+
+			case UP:
+				if (Control.Flanco == FALLING)
+				{
+					if (pdFALSE == (xQueueReceive(Config->Cola, &Control, (ANTIREBOTE_MS / portTICK_RATE_MS))))
+						Config->Estado = DOWN;
+				}
+				NVIC_EnableIRQ(PIN_INT0_IRQn);
+				NVIC_EnableIRQ(PIN_INT2_IRQn);
+				break;
+
+			case DOWN:
+				if (Control.Flanco == RISING)
+				{
+					if (pdFALSE == (xQueueReceive(Config->Cola, &Control, (ANTIREBOTE_MS / portTICK_RATE_MS))))
+					{
+						Config->Estado = UP;
+						buttonEvent.event = Control.GPIO_event;
+						xQueueSend(FSMQueue, &buttonEvent, portMAX_DELAY);
+					}
+				}
+				NVIC_EnableIRQ(PIN_INT1_IRQn);
+				NVIC_EnableIRQ(PIN_INT3_IRQn);
+				break;
+
+			default:
+				Config->Estado = UP;
+				break;
 			}
-			NVIC_EnableIRQ(TEC1_INTERRUPT);
-		}
-		else if (buttonIRQ == TEC2)
-		{
-			vTaskDelay(pdMS_TO_TICKS(40));
-			if (!gpioRead(TEC2))
-			{
-				buttonEvent.event = TEC2_EVENT;
-				xQueueSend(FSMQueue, &buttonEvent, pdMS_TO_TICKS(10));;
-			}
-			NVIC_EnableIRQ(TEC2_INTERRUPT);
 		}
 	}
 }
 
 static void configGPIO_Interrupts(void)
 {
+	//Inicializamos las interrupciones (LPCopen)
+	Chip_PININT_Init(LPC_GPIO_PIN_INT);
 
-	/* Configuracion de GPIO0 de la EDU-CIAA-NXP como entrada con pull-up */
-	gpioConfig(GPIO0, GPIO_INPUT_PULLUP);
+	// TEC1 FALL
+	Chip_SCU_GPIOIntPinSel(0, 0, 4);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH0); //Se configura el canal para que se active por flanco
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH0);	 //Se configura para que el flanco sea el de bajada
 
-	// ---> Comienzo de funciones LPCOpen para configurar la interrupcion
+	// TEC1 RISE
+	Chip_SCU_GPIOIntPinSel(1, 0, 4);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH1); //Se configura el canal para que se active por flanco
+	Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH1);	 //En este caso el flanco es de subida
 
-	// Configure interrupt channel for the GPIO pin in SysCon block
-	Chip_SCU_GPIOIntPinSel(TEC2_INDEX, GPIO1_GPIO_PORT, GPIO1_GPIO_PIN);
-	Chip_SCU_GPIOIntPinSel(TEC1_INDEX, GPIO0_GPIO_PORT, GPIO0_GPIO_PIN);
+	// TEC2 FALL
+	Chip_SCU_GPIOIntPinSel(2, 0, 8);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH2);
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH2);
 
-	// Configure channel interrupt as edge sensitive and falling edge interrupt
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(TEC2_INDEX));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(TEC2_INDEX));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(TEC2_INDEX));
+	// TEC1 RISE
+	Chip_SCU_GPIOIntPinSel(3, 0, 8);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH3);
+	Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH3);
 
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(TEC1_INDEX));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(TEC1_INDEX));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(TEC1_INDEX));
-
-	// Enable interrupt in the NVIC
-	NVIC_SetPriority(TEC2_INTERRUPT, configMAX_SYSCALL_INTERRUPT_PRIORITY + 5);
-	NVIC_SetPriority(TEC1_INTERRUPT, configMAX_SYSCALL_INTERRUPT_PRIORITY + 5);
-	NVIC_ClearPendingIRQ(TEC2_INTERRUPT);
-	NVIC_EnableIRQ(TEC2_INTERRUPT);
-	NVIC_ClearPendingIRQ(TEC1_INTERRUPT);
-	NVIC_EnableIRQ(TEC1_INTERRUPT);
+	//Una vez que se han configurado los eventos para cada canal de interrupcion
+	//Se activan las interrupciones para que comiencen a llamar al handler
+	NVIC_SetPriority(PIN_INT0_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+	NVIC_EnableIRQ(PIN_INT0_IRQn);
+	NVIC_SetPriority(PIN_INT1_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+	NVIC_EnableIRQ(PIN_INT1_IRQn);
+	NVIC_SetPriority(PIN_INT2_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+	NVIC_EnableIRQ(PIN_INT2_IRQn);
+	NVIC_SetPriority(PIN_INT3_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+	NVIC_EnableIRQ(PIN_INT3_IRQn);
 }
 
-void TEC2_ISR_HANDLER(void)
+void GPIO0_IRQHandler(void)
 {
-	NVIC_DisableIRQ(TEC2_INTERRUPT);
-	BaseType_t xHigherPriorityTaskWoken;
+	NVIC_DisableIRQ(PIN_INT0_IRQn);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE; //Comenzamos definiendo la variable
 
-	xHigherPriorityTaskWoken = pdFALSE;
+	if (Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT) & PININTCH0)
+	{															 //Verificamos que la interrupcion es la esperada
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH0); //Borramos el flag de interrupcion
+		//codigo a ejecutar si ocurrio la interrupcion
 
-	// Se da aviso que se trato la interrupcion
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(TEC2_INDEX));
+		Button_Control_t Snapshot;
+		Snapshot.Flanco = FALLING;
+		Snapshot.GPIO_event = TEC1_EVENT;
 
-	// Se realiza alguna accion.
-	//	ISRButton.ISRstate = gpioRead(TEC2);
-	ISRButton = TEC2;
-	xQueueSendFromISR(buttonsQueue, &ISRButton, &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(Buttons_SM[Tecla1].Cola, &Snapshot, &xHigherPriorityTaskWoken);
+	}
 
-	//	NVIC_EnableIRQ( TEC2_INTERRUPT);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void TEC1_ISR_HANDLER(void)
+void GPIO1_IRQHandler(void)
 {
-	NVIC_DisableIRQ(TEC1_INTERRUPT);
-	BaseType_t xHigherPriorityTaskWoken;
+	NVIC_DisableIRQ(PIN_INT1_IRQn);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	xHigherPriorityTaskWoken = pdFALSE;
+	if (Chip_PININT_GetRiseStates(LPC_GPIO_PIN_INT) & PININTCH1)
+	{
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH1);
+		//codigo a ejecutar si ocurrio la interrupcion
+		Button_Control_t Snapshot;
+		Snapshot.Flanco = RISING;
+		Snapshot.GPIO_event = TEC1_EVENT;
+		xQueueSendFromISR(Buttons_SM[Tecla1].Cola, &Snapshot, &xHigherPriorityTaskWoken);
+	}
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
 
-	// Se da aviso que se trato la interrupcion
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(TEC1_INDEX));
+void GPIO2_IRQHandler(void)
+{
+	NVIC_DisableIRQ(PIN_INT2_IRQn);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE; //Comenzamos definiendo la variable
 
-	// Se realiza alguna accion.
-	//	ISRButton.ISRstate = gpioRead(TEC1);
-	ISRButton = TEC1;
-	xQueueSendFromISR(buttonsQueue, &ISRButton, &xHigherPriorityTaskWoken);
+	if (Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT) & PININTCH2)
+	{															 //Verificamos que la interrupcion es la esperada
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH2); //Borramos el flag de interrupcion
+		//codigo a ejecutar si ocurrio la interrupcion
+		Button_Control_t Snapshot;
+		Snapshot.Flanco = FALLING;
+		Snapshot.GPIO_event = TEC2_EVENT;
+		xQueueSendFromISR(Buttons_SM[Tecla2].Cola, &Snapshot, &xHigherPriorityTaskWoken);
+	}
 
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void GPIO3_IRQHandler(void)
+{
+	NVIC_DisableIRQ(PIN_INT3_IRQn);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	if (Chip_PININT_GetRiseStates(LPC_GPIO_PIN_INT) & PININTCH3)
+	{
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH3);
+		//codigo a ejecutar si ocurrio la interrupcion
+		Button_Control_t Snapshot;
+		Snapshot.Flanco = RISING;
+		Snapshot.GPIO_event = TEC2_EVENT;
+		xQueueSendFromISR(Buttons_SM[Tecla2].Cola, &Snapshot, &xHigherPriorityTaskWoken);
+	}
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }

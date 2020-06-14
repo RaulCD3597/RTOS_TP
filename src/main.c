@@ -23,11 +23,10 @@ int main(void)
 {
 	boardInit();
 
-	deviceSM_Init();
-	Buttons_init();
 	SD_Init();
 	bluetooth_Init();
 	uartPC_Init();
+	Buttons_init();
 	deviceSM_Init();
 
 	vTaskStartScheduler();

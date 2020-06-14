@@ -33,7 +33,7 @@ void deviceSM_Init(void)
         xTaskCreate(
             FSMTask,
             (const char *)"FSMTask",
-            (configMINIMAL_STACK_SIZE * 4),
+            (configMINIMAL_STACK_SIZE * 5),
             NULL,
             FSMtsk_PRIORITY,
             NULL);
