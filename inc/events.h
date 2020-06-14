@@ -22,8 +22,6 @@
 #define MAX_CHAR 20
 #define READ_SIZE 500
 
-extern QueueHandle_t FSMQueue;
-
 enum
 {
     BLE_EVENT = 0,
@@ -49,5 +47,6 @@ typedef struct
 } event_t;
 
 uint8_t getValueLength(uint8_t *value);
+void send_Event(event_t *pEvent);
 
 #endif /* EVENTS_H_ */

@@ -28,6 +28,7 @@ uint8_t RX_buffer[100];
 uint8_t RXindex = 0;
 SemaphoreHandle_t RX_Semaphore;
 static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
+bool_t newMessage = false;
 
 void RXCallback(void *pvParam);
 static void uartPCTask(void *pvParameters);
@@ -75,19 +76,20 @@ void RXCallback(void *pvParam)
     if (c == '{')
     {
         RXindex = 0;
+        newMessage = true;
         memset(RX_buffer, 0, RX_BUFF_LENGTH);
-        RX_buffer[RXindex] = c;
+        RX_buffer[RXindex++] = c;
     }
-    else if (c == '\r')
+    else if (newMessage && c == '\r')
     {
+        newMessage = false;
         xSemaphoreGiveFromISR(RX_Semaphore, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
-    else if ((c != '\n') && (c != '\r'))
+    else if (newMessage && (c != '\n') && (c != '\r'))
     {
-        RX_buffer[RXindex] = c;
+        RX_buffer[RXindex++] = c;
     }
-    RXindex++;
 }
 
 static void uartPCTask(void *pvParameters)
@@ -97,7 +99,7 @@ static void uartPCTask(void *pvParameters)
     {
         xSemaphoreTake(RX_Semaphore, portMAX_DELAY);
         uart_Parser(RX_buffer, &uartPC_newMsg);
-        xQueueSend(FSMQueue, &uartPC_newMsg, pdMS_TO_TICKS(10));
+        send_Event(&uartPC_newMsg);
     }
 }
 

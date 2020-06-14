@@ -21,13 +21,13 @@
 static FATFS fs;
 static FIL fp;
 static rtc_t rtc = {
-	2020,
-	6,
-	6,
-	6,
-	9,
-	0,
-	0};
+	2020,	// Anho
+	6,		// Mes
+	14,		// Dia ( 0 - 31 )
+	7,		// Dia de la semana ( 1 - 7 )
+	18,		// Hora
+	17,		// Minutos
+	0};		// Segundos
 static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
 
 static void FATTask(void *taskParmPtr);

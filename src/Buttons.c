@@ -108,7 +108,7 @@ static void ButtonTask(void *pvParameters)
 					{
 						Config->Estado = UP;
 						buttonEvent.event = Control.GPIO_event;
-						xQueueSend(FSMQueue, &buttonEvent, portMAX_DELAY);
+						send_Event(&buttonEvent);
 					}
 				}
 				NVIC_EnableIRQ(PIN_INT1_IRQn);

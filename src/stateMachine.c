@@ -18,7 +18,7 @@
 #include "SD_Module.h"
 
 static deviceState_t mainState;
-QueueHandle_t FSMQueue;
+static QueueHandle_t FSMQueue;
 
 static void FSMTask(void *pvParameters);
 static void deviceSM_Update(event_t newEvent);
@@ -250,4 +250,9 @@ static void led_Update()
     default:
         break;
     }
+}
+
+void send_Event(event_t *pEvent)
+{
+    xQueueSend(FSMQueue, pEvent, portMAX_DELAY);
 }

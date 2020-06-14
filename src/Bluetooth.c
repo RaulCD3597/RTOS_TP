@@ -37,6 +37,7 @@ uint8_t BLE_RX_buffer[100];
 uint8_t BLE_RXindex = 0;
 SemaphoreHandle_t BLE_Semaphore;
 QueueHandle_t FSMQueue;
+static bool_t newMessage = false;
 
 void BLE_ReceiveCallback(void *pvParam);
 static void BLETask(void *pvParameters);
@@ -71,19 +72,20 @@ void BLE_ReceiveCallback(void *pvParam)
 	if (c == '{')
 	{
 		BLE_RXindex = 0;
+		newMessage = true;
 		memset(BLE_RX_buffer, 0, BLE_RX_BUFF_LENGTH);
-		BLE_RX_buffer[BLE_RXindex] = c;
+		BLE_RX_buffer[BLE_RXindex++] = c;
 	}
 	else if (c == '\r')
 	{
+		newMessage = false;
 		xSemaphoreGiveFromISR(BLE_Semaphore, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
 	else if ((c != '\n') && (c != '\r'))
 	{
-		BLE_RX_buffer[BLE_RXindex] = c;
+		BLE_RX_buffer[BLE_RXindex++] = c;
 	}
-	BLE_RXindex++;
 }
 
 void BLETask(void *pvParameters)
@@ -93,7 +95,7 @@ void BLETask(void *pvParameters)
 	{
 		xSemaphoreTake(BLE_Semaphore, portMAX_DELAY);
 		bluetooth_Parser(BLE_RX_buffer, &BLE_newMsg);
-		xQueueSend(FSMQueue, &BLE_newMsg, pdMS_TO_TICKS(10));
+		send_Event(&BLE_newMsg);
 	}
 }
 
