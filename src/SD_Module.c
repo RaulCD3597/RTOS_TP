@@ -23,10 +23,10 @@ static FIL fp;
 static rtc_t rtc = {
 	2020, // Anho
 	6,	  // Mes
-	14,	  // Dia ( 0 - 31 )
-	7,	  // Dia de la semana ( 1 - 7 )
-	18,	  // Hora
-	17,	  // Minutos
+	16,	  // Dia ( 0 - 31 )
+	2,	  // Dia de la semana ( 1 - 7 )
+	17,	  // Hora
+	48,	  // Minutos
 	0};	  // Segundos
 static uint8_t idToMessage[MAX_WORDS][MAX_CHAR] = {"Error", "Emergencia", "Normal", "Bateria baja"};
 
@@ -49,6 +49,7 @@ void SD_Init(void)
 		// If this fails, it means that the function could
 		// not register a file system object.
 		// Check whether the SD card is correctly connected
+		uartWriteString(UARTPC, "fail mounting SD");
 	}
 
 	xTaskCreate(
