@@ -45,6 +45,10 @@ void FSMTask(void *pvParameters)
     event_t newEvent;
     for (;;)
     {
+    	/**
+    	 * 1. Espero a recibir un evento
+    	 * 2. Ya con el evento recibido, actualizo el estado del sistema
+    	 */
         xQueueReceive(FSMQueue, &newEvent, portMAX_DELAY);
         deviceSM_Update(newEvent);
     }

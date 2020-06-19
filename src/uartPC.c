@@ -53,6 +53,10 @@ void uartPC_Init(void)
 }
 void uartPC_SendEvent(event_t *pNewEvent)
 {
+	/**
+	 * Note: Funcion pensada para enviar por uart conectada a PC
+	 * los eventos generados por el llamador (smartphone provisionalmente)
+	 */
     uint8_t messageToSend[100], msg[(pNewEvent->msgLength + 1)];
     memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
     msg[pNewEvent->msgLength] = 0;
@@ -110,6 +114,12 @@ static void uartPCTask(void *pvParameters)
 
 static void uart_Parser(uint8_t *msg, event_t *pEvent)
 {
+	/**
+	 * Interpreta el tipo de evento a mandar al llamador
+	 * Note: Puede ser {"id": 0} o {"id": 1} para cerrar y abrir microfono del llamador
+	 * tambien se puede recibir evento para mandar un mensaje al llamador (extra por el
+	 * uso del smartphone) para eso espera recibir {"msg": "string de mensaje"}
+	 */
     pEvent->event = UARTPC_EVENT;
     uint8_t *buff = strstr(msg, ID_STRING);
     if (buff)
@@ -135,6 +145,10 @@ static void uart_Parser(uint8_t *msg, event_t *pEvent)
 
 void uartPC_SendSyslog(uint8_t *msg)
 {
+	/**
+	 * Escribe un mensaje en uart conectada a PC
+	 * note: Pensado para enviar los eventos guardados en SD.
+	 */
     uint8_t buff[READ_SIZE + 1];
     memcpy(buff, msg, READ_SIZE);
     buff[READ_SIZE] = 0;

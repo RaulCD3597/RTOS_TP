@@ -18,10 +18,14 @@
 int main(void)
 {
 	boardInit();
-
+	/**
+	 * Solo inicializo el modulo de SD para poder configurar RTC
+	 * despues de iniciar RTC inicializo el resto de modulos en la
+	 * tarea de SD.
+	 */
 	SD_Init();
 
 	vTaskStartScheduler();
-
+	// Nunca debe llegar al return.
 	return 0;
 }

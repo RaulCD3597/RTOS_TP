@@ -108,6 +108,11 @@ void BLETask(void *pvParameters)
 
 static void bluetooth_Parser(uint8_t *msg, event_t *pBLEevent)
 {
+	/**
+	 * 1. Setea el tipo de evento en evento de bluetooth
+	 * 2. Obtiene el id del comando
+	 * 3. Obtiene el mensaje del comando su es que lo tiene
+	 */
 	pBLEevent->event = BLE_EVENT;
 	get_ID(msg, &pBLEevent->msgId);
 	get_Msg(msg, pBLEevent->message, &pBLEevent->msgLength);
@@ -158,6 +163,12 @@ static void get_Msg(uint8_t *msg, uint8_t *receiveBuffer, uint8_t *length)
 
 void bluetooth_SendEvent(event_t *pNewEvent)
 {
+	/**
+	 * Funcion que envia evento generado desde la UART
+	 * conectada a la PC.
+	 * Se puede enviar evento para abrir o cerrar microfono
+	 * o si se envia un mensaje.
+	 */
 	uint8_t messageToSend[100], msg[(pNewEvent->msgLength + 1)];
 	memcpy(msg, pNewEvent->message, pNewEvent->msgLength);
 	msg[pNewEvent->msgLength] = 0;

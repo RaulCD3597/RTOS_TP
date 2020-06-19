@@ -63,6 +63,13 @@ void SD_Init(void)
 
 void FATTask(void *taskParmPtr)
 {
+	/**
+	 * Note: Aqui inicializo todos los modulos restantes
+	 * para poder usar el vTaskDelay en la libreria de RTC
+	 * que fue modificada para que funcione con freeRTOS.
+	 * Los delays que tiene RTC en sapi son necesario para
+	 * correcto funcionamiento
+	 */
 	rtcInit();		// Inicializar RTC
 	rtcWrite(&rtc); // Establecer fecha y hora
 	vTaskDelay(pdMS_TO_TICKS(1000));
@@ -77,6 +84,10 @@ void FATTask(void *taskParmPtr)
 
 	for (;;)
 	{
+		/**
+		 * disk_timerproc necesita ejecutarse cada 10 ms para correcto
+		 * funcionamiento de libreria FAT usada para guardar en SD
+		 */
 		disk_timerproc();
 		vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
 	}
@@ -84,6 +95,14 @@ void FATTask(void *taskParmPtr)
 
 void SD_WriteSyslog(event_t *newEvent)
 {
+	/**
+	 * 1. Verifico tipo de evento que se quiere escribir en SD
+	 * 2. Escribo el evento guardando el tiempo de recepcion del evento
+	 *    con formato segun el evento
+	 * Note: El formato de cada evento esta en cada funcion que se llama
+	 * 	  en el switch que sigue. Las funciones hacen practicamente el mismo
+	 * 	  proceso.
+	 */
 	switch (newEvent->event)
 	{
 	case BLE_EVENT:
@@ -209,6 +228,16 @@ static void SD_UARTEvent(event_t *pNewEvent)
 
 void SD_ShowSyslog(void)
 {
+	/**
+	 * 1. Intento abrir el archivo donde se tienen guardados lo eventos
+	 * 2. Si el documento existe y logro abrirlo, me voy hasta el final del
+	 * archivo y retrocedo READ_SIZE posiciones para poder leer esta cantidad
+	 * de caracteres.
+	 * 3. Una vez posicionado READ_SIZE caracteres antes del final, voy leyendo
+	 * y guardando en buff
+	 * 4. Escribo en la UART conectada a la PC lo que tengo en buff
+	 * 5. Cierro el archivo.
+	 */
 	uint8_t buff[READ_SIZE];
 	int nbytes;
 	if (f_open(&fp, FILENAME, FA_READ) == FR_OK)
